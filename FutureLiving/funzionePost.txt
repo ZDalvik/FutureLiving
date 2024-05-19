@@ -1,0 +1,32 @@
+/*
+*   //controlla connessione per instaurazione connessione http 
+*    if(WiFi.status()== WL_CONNECTED){
+*      WiFiClient client;
+*      HTTPClient http;
+*
+*      //inizio connessione http
+*      http.begin(client, serverName);
+*
+*      //
+*      //header che indica il tipo di contenuto del body (ricordiamo che POST invia i dati nel body e non nell'header)
+*      // in questo caso inviamo i dati sottoforma di url, potremo farlo anche tramite json o plain text
+*      //
+*
+*      http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+*
+*      //creazione e invio dei dati del sensore di temperatura tramite metodo HTTP POST
+*      String httpRequestData="temp="+String(t)+"&hum="+String(h);
+*      int httpResponse= http.POST(httpRequestData);
+*
+*      //print su seriale del codice di risposta HTTP per controllo
+*      Serial.print("HTTP RC: ");
+*      Serial.println(httpResponse);
+*
+*      //chiusura connessione HTTP
+*      http.end();
+*    }
+*    else{
+*      Serial.println("nessuna connessione WiFi");
+*    }
+*
+*/  
