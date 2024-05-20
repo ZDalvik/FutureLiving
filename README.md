@@ -1,4 +1,4 @@
-# CitySense
+# FutureLiving
  IoT project for university
 
  We're developing a system that's able to manage a gated community in some of it's sides.
