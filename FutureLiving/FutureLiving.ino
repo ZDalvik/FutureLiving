@@ -3,7 +3,7 @@
   This project is for an IoT lab class final exam.
   Università degli studi della Campania Luigi Vanvitelli dipartimento di ingegneria.
 */
-
+#include <ESP32Servo.h>
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include <DHT.h>
@@ -14,6 +14,11 @@
   //Sensore IR
 #define EchoPin 12
 #define TriggerPin 14
+  //servo
+#define ServoPin 15
+
+//creazione oggetto della classe servo
+Servo myservo;
 
 #define MAX_DISTANCE 700 //distanza massima del sensore IR
 
@@ -36,8 +41,14 @@ DHT dht(DHTPIN, DHTTYPE);
 const char* ssid="FASTWEB-WV1GBU";
 const char* password="62RGOCYWHT";
 
+//setting del web server sulla porta 80
+WiFiServer server(80);
+
 //URL o IP con path (da cambiare ogni volta)
 const char* serverName="http://192.168.1.126/PHP-examples/Temp.php";
+
+//stringa per la richiesta HTTP
+String header;
 
 void setup() {
   //setta il baud rate per la connessione seriale
@@ -53,16 +64,41 @@ void setup() {
   Serial.println("");
   Serial.print("connesso al wifi con ip:");
   Serial.println(WiFi.localIP());
+  server.begin();
 
   //setting del sensore IR
   pinMode(TriggerPin,OUTPUT);
   pinMode(EchoPin,INPUT);
+
+  //setting servo
+  myservo.setPeriodHertz(50);
+  myservo.attach(ServoPin, 500, 2500);
 
   //faccio partire il sensore di temperatura
   dht.begin();
 }
 
 void loop() {
+
+  //funzionamento del servo: grazie ad una richiesta http inviata dall'esterno
+  //il portone si apre per poi richiudersi dopo un tot di tempo
+  WiFiClient client=server.available(); //capisce se c'è un client che intende connettersi
+  if(client){ //se c'è un client 
+    Serial.println("client connected");
+    while(client.connected()){  //finchè il client è connesso
+      if(client.available()){   //se c'è un una richiesta dal client
+        header=client.readStringUntil('\n');  //legge il messaggio fino all'andata a capo
+        if(header.indexOf("GET /15/open")>=0){  //se la richiesta è tramite metodo GET e sopratutto se richiede l'apertura
+          myservo.write(90);    //apre la sbarra di 90°
+          delay(10000);         //aspetta 10 secondi (10000 ms)
+          myservo.write(0);     //richiude la sbarra
+        }
+        while(client.read()>0); //finisce di leggere la richiesta
+      }
+    } 
+    client.stop();              //stoppa la connessione del client
+    Serial.println("Client disconnesso");
+  }
 
   //distanza ogni 10 secondi
   if((millis()-lastTimeAfar)>10000){
