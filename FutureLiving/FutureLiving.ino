@@ -3,6 +3,7 @@
   This project is for an IoT lab class final exam.
   Università degli studi della Campania Luigi Vanvitelli dipartimento di ingegneria.
 */
+
 #include <ESP32Servo.h>
 #include <WiFi.h>
 #include <HTTPClient.h>
@@ -16,11 +17,13 @@
 #define TriggerPin 14
   //servo
 #define ServoPin 15
+  //fotoresistore
+#define AnalogPin 2
 
 //creazione oggetto della classe servo
 Servo myservo;
 
-#define MAX_DISTANCE 700 //distanza massima del sensore IR
+#define MAX_DISTANCE 250 //distanza massima del sensore IR
 
 //definizione tipi di sensore (non per ogni sensore)
 #define DHTTYPE DHT22
@@ -38,19 +41,31 @@ unsigned long lastTimeAfar=0;
 DHT dht(DHTPIN, DHTTYPE);
 
 //ssid e password del wifi (da cambiare ogni volta)
-const char* ssid="FASTWEB-WV1GBU";
-const char* password="62RGOCYWHT";
+const char* ssid="TP-LINK_E7DE5E";
+const char* password="tommaso2003";
 
 //setting del web server sulla porta 80
 WiFiServer server(80);
 
 //URL o IP con path (da cambiare ogni volta)
-const char* serverName="http://192.168.1.126/PHP-examples/Temp.php";
+const char* serverNameSens="http://192.168.0.104/PHP-examples/Temp.php";
+const char* serverNameMail="http://192.168.0.104/PHP-examples/Mail.php";
 
 //stringa per la richiesta HTTP
 String header;
 
+//lampioni
+#define LED1 25
+#define LED2 26
+#define LED3 27
+
 void setup() {
+
+  //setting dei led in modalità output
+  pinMode(LED1, OUTPUT);
+  pinMode(LED2, OUTPUT);
+  pinMode(LED3, OUTPUT);
+
   //setta il baud rate per la connessione seriale
   Serial.begin(115200);
 
@@ -64,7 +79,7 @@ void setup() {
   Serial.println("");
   Serial.print("connesso al wifi con ip:");
   Serial.println(WiFi.localIP());
-  server.begin();
+  server.begin(); //faccio partire il server web
 
   //setting del sensore IR
   pinMode(TriggerPin,OUTPUT);
@@ -76,9 +91,50 @@ void setup() {
 
   //faccio partire il sensore di temperatura
   dht.begin();
+
+  //setting lampioni
+  for(int i = 0; i<sizeof(ledPins);i++){
+    pinMode(ledPins[i], OUTPUT);  //setto tutti i pin delle luci in modalità output
+  }
 }
 
 void loop() {
+  //accensione e spegnimento lampioni in base alla luce ambientale
+  int luce=analogRead(AnalogPin);
+  if(luce>3300){ //se incomincia a far buio
+    digitalWrite(PIN1, HIGH);
+    digitalWrite(PIN2, HIGH);   //accende tutte le 3 luci
+    digitalWrite(PIN3, HIGH);
+  }else{ //altrimenti
+    digitalWrite(PIN1, LOW);
+    digitalWrite(PIN2, LOW);  //le spegne
+    digitalWrite(PIN3, LOW);
+  }
+  }
+
+  //distanza ogni 10 secondi
+  if((millis()-lastTimeAfar)>10000){
+    SerialDistTest(); //printo su seriale per testare i valori
+    float fillPercent=1-(getSonar()/25); //percentuale di riempimento (da aggiustare)
+    Serial.println(String(fillPercent*100)+"%"); //stampa la percentuale di riempimento
+    lastTimeAfar=millis();
+  }
+
+  //manda la temperatura ogni 60 secondi
+  if((millis()-lastTimeTemp)>60000){
+    //setto due variabili per la lettura di umidità e temperatura (in gradi centigradi)
+    float h=dht.readHumidity();
+    float t=dht.readTemperature();
+
+    //stampo a seriale i valori per scopo di test
+    SerialTempTest(t, h);
+
+    //invio con HTTP POST i dati ricevuti per essere salvati su DB e per poi essere riutilizzati
+    if(!sendToServer(serverNameSens, "temp="+String(t)+"&hum="+String(h))){
+      Serial.print("insuccesso temperatura");
+    } 
+    lastTimeTemp=millis();
+  }
 
   //funzionamento del servo: grazie ad una richiesta http inviata dall'esterno
   //il portone si apre per poi richiudersi dopo un tot di tempo
@@ -100,27 +156,6 @@ void loop() {
     Serial.println("Client disconnesso");
   }
 
-  //distanza ogni 10 secondi
-  if((millis()-lastTimeAfar)>10000){
-    SerialDistTest();
-    lastTimeAfar=millis();
-  }
-
-  //manda la temperatura ogni 60 secondi
-  if((millis()-lastTimeTemp)>60000){
-    //setto due variabili per la lettura di umidità e temperatura (in gradi centigradi)
-    float h=dht.readHumidity();
-    float t=dht.readTemperature();
-
-    //stampo a seriale i valori per scopo di test
-    SerialTempTest(t, h);
-
-    //invio con HTTP POST i dati ricevuti per essere salvati su DB e per poi essere riutilizzati
-    if(!sendToServer("temp="+String(t)+"&hum="+String(h))){
-      Serial.print("insuccesso temperatura");
-    } 
-    lastTimeTemp=millis();
-  }
 }
 
 //Funzione che ritorna la distanza registrata dal sensore
@@ -160,7 +195,7 @@ void SerialTempTest(float tmp, float um){
   Serial.println(F(" %"));
 }
 
-bool sendToServer(String message){
+bool sendToServer(String serverName, String message){
       if(WiFi.status()== WL_CONNECTED){
       WiFiClient client;
       HTTPClient http;
