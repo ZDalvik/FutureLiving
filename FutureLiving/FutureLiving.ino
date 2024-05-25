@@ -4,6 +4,8 @@
   Università degli studi della Campania Luigi Vanvitelli dipartimento di ingegneria.
 */
 
+
+//descrizione delle librerie si trova sul report contenuto nella cartella report
 #include <ESP32Servo.h>
 #include <WiFi.h>
 #include <HTTPClient.h>
@@ -32,13 +34,14 @@ Servo myservo;
 #define DHTTYPE DHT22
 
 float timeout=MAX_DISTANCE*60; //tempo di timeout per il sensore IR
-int soundspeed=340;
+int soundspeed=340; //velocità della luce
 
 //soluzione per far funzionare i sensori insieme
 //in pratica usiamo un timer che varia in runtime e lo confrontiamo con il tempo desiderato
 //controlleremo il tempo passato e nel caso sia passato il tempo necessario allora continueremo con la rilevazione
 unsigned long lastTimeTemp=0;
 unsigned long lastTimeAfar=0;
+unsigned long lastTimeLight=0;
 
 //definisce un oggetto DHT (sensore di temperatura)
 DHT dht(DHTPIN, DHTTYPE);
@@ -58,7 +61,7 @@ const char *PUSHOVER_ROOT_CA = "";
 WiFiServer server(80);
 
 //URL o IP con path (da cambiare ogni volta)
-const char* serverNameSens="http://192.168.1.126/PHP-examples/Temp.php";
+const char* serverNameSens="http://192.168.1.126/FutureLiving/Sensor.php";
 const char* ApiEndpoint="https://api.pushover.net/1/messages.json";
 const char* serverNoty="http://192.168.1.126/PHP-examples/Noti.php";
 
@@ -106,36 +109,48 @@ void setup() {
 
 void loop() {
   //accensione e spegnimento lampioni in base alla luce ambientale
+  //il controllo avviene ogni minuto 
+  if(millis()-lastTimeLight>60000){
   int luce=analogRead(AnalogPin);
-  if(luce>3300){ //se incomincia a far buio
+  if(luce<250){ //se incomincia a far buio
+  //accende i lampioni e invia il proprio stato al db
     digitalWrite(LED1, HIGH);
-    digitalWrite(LED2, HIGH);   //accende tutte le 3 luci
+    sendToServer(serverNameSens, "key=luci&idlamp=1&stato=1");
+    digitalWrite(LED2, HIGH);                           
+    sendToServer(serverNameSens, "key=luci&idlamp=2&stato=1");
     digitalWrite(LED3, HIGH);
+    sendToServer(serverNameSens, "key=luci&idlamp=3&stato=1");
   }else{ //altrimenti
+  //li spegne e invia il loro stato al db
     digitalWrite(LED1, LOW);
+    sendToServer(serverNameSens, "key=luci&idlamp=1&stato=0");
     digitalWrite(LED2, LOW);  //le spegne
+    sendToServer(serverNameSens, "key=luci&idlamp=2&stato=0");
     digitalWrite(LED3, LOW);
+    sendToServer(serverNameSens, "key=luci&idlamp=3&stato=0");
+  }
+  lastTimeLight=millis();
   }
 
-  //distanza ogni 10 secondi
-  if((millis()-lastTimeAfar)>10000){
+  //distanza ogni 5 minuti
+  if((millis()-lastTimeAfar)>300000){
     //SerialDistTest(); //printo su seriale per testare i valori
     float distance = getSonar();
     if(distance>25.00){ //avendo un range di più di 25 cm e se considerassimo 25 cm come distanza massima ci ritroveremo con diversi problemi forziamo ad avere una distanza massima di 25 cm
       distance=25.00;
     }
-    Serial.println(String(distance) +" cm");
+    Serial.println(String(distance) +" cm");  //test per controllare corretto funzionamento
     float fillPercent=1-(distance/25);  //percentuale di riempimento (da aggiustare)
     Serial.println(String(fillPercent*100)+"%");  //stampa la percentuale di riempimento
-    sendToServer(serverNameSens, "fill="+String(fillPercent)+"&id=001");  //invia i dati al db
+    sendToServer(serverNameSens, "key=spazzatura&fill="+String(fillPercent*100)+"&ids=1");  //invia i dati al db
     if(fillPercent>0.75){ //se pieno più del 75% manda una notifica al netturbino
-      notify("il cassonetto con id 001 è pieno al "+String(fillPercent*100)+"% si prega di andare a svuotarlo", "cestino 001 pieno", ""); //si riporta alla funzione notify che sfrutta una post verso l'api di pushover
+      notify("il cassonetto con id 001 è pieno al "+String(fillPercent*100)+"% si prega di andare a svuotarlo", "cestino 1 pieno", "Netturbino"); //si riporta alla funzione notify che sfrutta una post verso l'api di pushover
     }
     lastTimeAfar=millis();
   }
 
-  //manda la temperatura ogni 60 secondi
-  if((millis()-lastTimeTemp)>60000){
+  //manda la temperatura ogni mezz'ora
+  if((millis()-lastTimeTemp)>1800000){
     //setto due variabili per la lettura di umidità e temperatura (in gradi centigradi)
     float h=dht.readHumidity();
     float t=dht.readTemperature();
@@ -147,31 +162,26 @@ void loop() {
     if(!sendToServer(serverNameSens, "key=temperatura&temp="+String(t)+"&hum="+String(h))){
       Serial.print("insuccesso temperatura");
     } 
-    if(t>35.00){
-      notify("","caldo eccessivo","Residente");
-    }else if(t<5.00){
-      notify("","freddo eccessivo","Residente");
-    }
     lastTimeTemp=millis();
   }
 
   //funzionamento del servo: grazie ad una richiesta http inviata dall'esterno
   //il portone si apre per poi richiudersi dopo un tot di tempo
-  WiFiClient client=server.available(); //capisce se c'è un client che intende connettersi
-  if(client){ //se c'è un client 
+  WiFiClient client2=server.available(); //capisce se c'è un client che intende connettersi
+  if(client2){ //se c'è un client 
     Serial.println("client connected");
-    while(client.connected()){  //finchè il client è connesso
-      if(client.available()){   //se c'è un una richiesta dal client
-        header=client.readStringUntil('\n');  //legge il messaggio fino all'andata a capo
+    while(client2.connected()){  //finchè il client è connesso
+      if(client2.available()){   //se c'è un una richiesta dal client
+        header=client2.readStringUntil('\n');  //legge il messaggio fino all'andata a capo
         if(header.indexOf("GET /15/open")>=0){  //se la richiesta è tramite metodo GET e sopratutto se richiede l'apertura
           myservo.write(90);    //apre la sbarra di 90°
-          delay(10000);         //aspetta 10 secondi (10000 ms)
+          delay(15000);         //aspetta 15 secondi (15000 ms)
           myservo.write(0);     //richiude la sbarra
         }
-        while(client.read()>0); //finisce di leggere la richiesta
+        while(client2.read()>0); //finisce di leggere la richiesta
       }
     } 
-    client.stop();              //stoppa la connessione del client
+    client2.stop();              //stoppa la connessione del client
     Serial.println("Client disconnesso");
   }
 
@@ -247,8 +257,7 @@ bool sendToServer(String serverName, String message){
 
 bool notify(String msg, String title, String device){
   if (WiFi.status() == WL_CONNECTED) {
-    // Create a JSON object with notification details
-    // Check the API parameters: https://pushover.net/api
+    // crea un json da mandare all'api di pushover
     StaticJsonDocument<512> notification; 
     notification["token"] = apiToken; //required
     notification["user"] = userToken; //required
@@ -262,30 +271,23 @@ bool notify(String msg, String title, String device){
     notification["sound"] = "cosmic"; //optional
     notification["timestamp"] = ""; //optional
 
-    // Serialize the JSON object to a string
+    // facciamo diventare il json una stringa
     String jsonStringNotification;
     serializeJson(notification, jsonStringNotification);
 
-    // Create a WiFiClientSecure object
-    //WiFiClientSecure Sclient;
-    // Set the certificate
-    //Sclient.setCACert(PUSHOVER_ROOT_CA);
-
-    // Create an HTTPClient object
+    // creiamo un client http
     HTTPClient http;
 
-    Serial.println("cacas");
-    // Specify the target URL
+    // url dell'endpoint dell'api
     http.begin(ApiEndpoint);
-    Serial.println("cucus");
 
-    // Add headers
+    // Aggiungi header che indica il tipo di http
     http.addHeader("Content-Type", "application/json");
 
-    // Send the POST request with the JSON data
+    // manda la post
     int httpResponseCode = http.POST(jsonStringNotification);
 
-    // Check the response
+    // controlla la risposta
     if (httpResponseCode > 0) {
       Serial.printf("HTTP response code: %d\n", httpResponseCode);
       String response = http.getString();
@@ -295,7 +297,7 @@ bool notify(String msg, String title, String device){
       Serial.printf("HTTP response code: %d\n", httpResponseCode);
     }
     
-    // Close the connection
+    // chiudi la connessione
     http.end();
     return true;
   }
@@ -303,4 +305,4 @@ bool notify(String msg, String title, String device){
 }
 
 
-    // P.F. 25/05/2024 02:27
+    // P.F. 25/05/2024 17:27

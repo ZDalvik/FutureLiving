@@ -3,7 +3,26 @@
         <title>
             FutureLiving
         </title>
-        <link href="FutureLiving.css" rel="stylesheet">
+        <link href="css/FutureLiving.css" rel="stylesheet">
+        <script>
+
+            function sendGetRequest(){
+    
+                var url = 'http://192.168.0.107:80/15/open'
+    
+                var xht = new XMLHttpRequest();
+    
+                xht.open('GET', url, false);
+    
+                xht.onreadystatechange = function(){
+                    if(xht.readyState == 4 && xht.status ==200){
+                        alert('risposta server ' + xht.responseText);
+                    }
+                };
+                alert("hai 15 secondi per entrare");
+                xht.send();
+            }
+        </script>
     </head>
 
 
@@ -31,11 +50,11 @@
 
                 <div id="home" class="tab-content">
                     
-                    <img src="img2.png">
+                    <img src="rsc/img2.png">
                     
                     <br/><br/>
 
-                    <button onclick="alert('Cancello automatico in movimento')">CANCELLO AUTOMATICO</button>
+                    <button onclick="sendGetRequest()">CANCELLO AUTOMATICO</button>
                 </div>
 
                 <!-- SEZIONE METEO -->
@@ -46,7 +65,7 @@
 
                     <div class="text-container">
 
-                    <img src="meteoicon.png" class="img-icon">
+                    <img src="rsc/meteoicon.png" class="img-icon">
 
                     <h2 class="overtext">Meteo</h2>
                     <p class="text">
@@ -71,7 +90,7 @@
 
                     <div class="text-container">
 
-                        <img src="bulbicon.png" class="img-icon">
+                        <img src="rsc/bulbicon.png" class="img-icon">
 
                     <h2 class="overtext">Illuminazione</h2>
                     <p class="text">
@@ -94,7 +113,7 @@
 
                     <div class="text-container">
 
-                        <img src="rabbishicon.png" class="img-icon">
+                        <img src="rsc/rabbishicon.png" class="img-icon">
 
                     <h2 class="overtext">Rifiuti</h2>
                     <p class="text">
@@ -116,3 +135,4 @@
         
     </body>
 </html>
+
