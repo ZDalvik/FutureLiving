@@ -8,6 +8,9 @@
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include <DHT.h>
+#include <ArduinoJson.h>
+#include <WiFiClientSecure.h>
+
 
 //definizione pin GPIO dei sensori
   //temperatura
@@ -23,7 +26,7 @@
 //creazione oggetto della classe servo
 Servo myservo;
 
-#define MAX_DISTANCE 250 //distanza massima del sensore IR
+#define MAX_DISTANCE 7500 //distanza massima del sensore IR
 
 //definizione tipi di sensore (non per ogni sensore)
 #define DHTTYPE DHT22
@@ -41,15 +44,23 @@ unsigned long lastTimeAfar=0;
 DHT dht(DHTPIN, DHTTYPE);
 
 //ssid e password del wifi (da cambiare ogni volta)
-const char* ssid="TP-LINK_E7DE5E";
-const char* password="tommaso2003";
+const char* ssid="FASTWEB-WV1GBU";
+const char* password="62RGOCYWHT";
+
+//api token e user token per utilizzare il servizio pushover
+const char* apiToken = "aqy6bkr4c7aqucpec1743nsj38g2ce";
+const char* userToken = "uwemowyqrd7ogguo8csr2fg4fo6hxu";
+
+//certificato SSL
+const char *PUSHOVER_ROOT_CA = "";
 
 //setting del web server sulla porta 80
 WiFiServer server(80);
 
 //URL o IP con path (da cambiare ogni volta)
-const char* serverNameSens="http://192.168.0.104/PHP-examples/Temp.php";
-const char* serverNameMail="http://192.168.0.104/PHP-examples/Mail.php";
+const char* serverNameSens="http://192.168.1.126/PHP-examples/Temp.php";
+const char* ApiEndpoint="https://api.pushover.net/1/messages.json";
+const char* serverNoty="http://192.168.1.126/PHP-examples/Noti.php";
 
 //stringa per la richiesta HTTP
 String header;
@@ -91,32 +102,35 @@ void setup() {
 
   //faccio partire il sensore di temperatura
   dht.begin();
-
-  //setting lampioni
-  for(int i = 0; i<sizeof(ledPins);i++){
-    pinMode(ledPins[i], OUTPUT);  //setto tutti i pin delle luci in modalità output
-  }
 }
 
 void loop() {
   //accensione e spegnimento lampioni in base alla luce ambientale
   int luce=analogRead(AnalogPin);
   if(luce>3300){ //se incomincia a far buio
-    digitalWrite(PIN1, HIGH);
-    digitalWrite(PIN2, HIGH);   //accende tutte le 3 luci
-    digitalWrite(PIN3, HIGH);
+    digitalWrite(LED1, HIGH);
+    digitalWrite(LED2, HIGH);   //accende tutte le 3 luci
+    digitalWrite(LED3, HIGH);
   }else{ //altrimenti
-    digitalWrite(PIN1, LOW);
-    digitalWrite(PIN2, LOW);  //le spegne
-    digitalWrite(PIN3, LOW);
-  }
+    digitalWrite(LED1, LOW);
+    digitalWrite(LED2, LOW);  //le spegne
+    digitalWrite(LED3, LOW);
   }
 
   //distanza ogni 10 secondi
   if((millis()-lastTimeAfar)>10000){
-    SerialDistTest(); //printo su seriale per testare i valori
-    float fillPercent=1-(getSonar()/25); //percentuale di riempimento (da aggiustare)
-    Serial.println(String(fillPercent*100)+"%"); //stampa la percentuale di riempimento
+    //SerialDistTest(); //printo su seriale per testare i valori
+    float distance = getSonar();
+    if(distance>25.00){ //avendo un range di più di 25 cm e se considerassimo 25 cm come distanza massima ci ritroveremo con diversi problemi forziamo ad avere una distanza massima di 25 cm
+      distance=25.00;
+    }
+    Serial.println(String(distance) +" cm");
+    float fillPercent=1-(distance/25);  //percentuale di riempimento (da aggiustare)
+    Serial.println(String(fillPercent*100)+"%");  //stampa la percentuale di riempimento
+    sendToServer(serverNameSens, "fill="+String(fillPercent)+"&id=001");  //invia i dati al db
+    if(fillPercent>0.75){ //se pieno più del 75% manda una notifica al netturbino
+      notify("il cassonetto con id 001 è pieno al "+String(fillPercent*100)+"% si prega di andare a svuotarlo", "cestino 001 pieno", ""); //si riporta alla funzione notify che sfrutta una post verso l'api di pushover
+    }
     lastTimeAfar=millis();
   }
 
@@ -130,9 +144,14 @@ void loop() {
     SerialTempTest(t, h);
 
     //invio con HTTP POST i dati ricevuti per essere salvati su DB e per poi essere riutilizzati
-    if(!sendToServer(serverNameSens, "temp="+String(t)+"&hum="+String(h))){
+    if(!sendToServer(serverNameSens, "key=temperatura&temp="+String(t)+"&hum="+String(h))){
       Serial.print("insuccesso temperatura");
     } 
+    if(t>35.00){
+      notify("","caldo eccessivo","Residente");
+    }else if(t<5.00){
+      notify("","freddo eccessivo","Residente");
+    }
     lastTimeTemp=millis();
   }
 
@@ -226,4 +245,62 @@ bool sendToServer(String serverName, String message){
     }
 }
 
-    // P.F. 19/05/2024 19:53
+bool notify(String msg, String title, String device){
+  if (WiFi.status() == WL_CONNECTED) {
+    // Create a JSON object with notification details
+    // Check the API parameters: https://pushover.net/api
+    StaticJsonDocument<512> notification; 
+    notification["token"] = apiToken; //required
+    notification["user"] = userToken; //required
+    notification["message"] = msg; //required
+    notification["title"] = title; //optional
+    notification["device"] = device;
+    notification["url"] = ""; //optional
+    notification["url_title"] = ""; //optional
+    notification["html"] = ""; //optional
+    notification["priority"] = ""; //optional
+    notification["sound"] = "cosmic"; //optional
+    notification["timestamp"] = ""; //optional
+
+    // Serialize the JSON object to a string
+    String jsonStringNotification;
+    serializeJson(notification, jsonStringNotification);
+
+    // Create a WiFiClientSecure object
+    //WiFiClientSecure Sclient;
+    // Set the certificate
+    //Sclient.setCACert(PUSHOVER_ROOT_CA);
+
+    // Create an HTTPClient object
+    HTTPClient http;
+
+    Serial.println("cacas");
+    // Specify the target URL
+    http.begin(ApiEndpoint);
+    Serial.println("cucus");
+
+    // Add headers
+    http.addHeader("Content-Type", "application/json");
+
+    // Send the POST request with the JSON data
+    int httpResponseCode = http.POST(jsonStringNotification);
+
+    // Check the response
+    if (httpResponseCode > 0) {
+      Serial.printf("HTTP response code: %d\n", httpResponseCode);
+      String response = http.getString();
+      Serial.println("Response:");
+      Serial.println(response);
+    } else {
+      Serial.printf("HTTP response code: %d\n", httpResponseCode);
+    }
+    
+    // Close the connection
+    http.end();
+    return true;
+  }
+  return false;
+}
+
+
+    // P.F. 25/05/2024 02:27
