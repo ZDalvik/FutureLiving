@@ -7,9 +7,13 @@
 </head>
 <body>
     <?php
+    //include file sul quale è stata definita la funzione notify() che invia una notifica pushover ai residenti
         include('Noti.php');
 
-        $day_time=date("Y/m/d-h:i:s");
+    //la funzione date() chiede come parametro la sintassi della data che si vuole utilizzare
+    //e ritorna la data nel formato desiderato in questo caso è una data del tipo
+    //                                  (2020/01/12-04:12:02)
+        $day_time=date("Y/m/d-H:i:s");
     //setup della connesione al DB
         $servername = "localhost";
         $username = "root";
@@ -21,33 +25,35 @@
             die("Connessione fallita: " . mysqli_connect_error());
         }
         echo "Connessione riuscita <br>";
+        //controlla se la chiave è stata inviata
         if(isset($_POST['key'])){
+            //serie di if per il controllo del tipo di dato inviato
             if($_POST['key']=='temperatura'){
                 if(isset($_POST['temp']) && isset($_POST['hum'])){
                     $temperatura=$_POST['temp'];
                     $umidità=$_POST['hum'];
                 }
+                //inserisce temperatura umidità e la data/ora in cui è avvenuta la rilevazione
                 $query="INSERT INTO `Termometro`(`Temperatura (C°)`, `Umidità (%)`, `Data/ora`) VALUES ($temperatura, $umidità, '$day_time')";
                 $result=mysqli_query($conn,$query);
 
-                if($temperatura > 35.00 && date("h") == "12"){
-                    notify("temperatura alta","la temperatura registrata alle 12:00 è di ".$temperatura." C°, si consiglia di rimanere idratati e di non uscire nelle ore più calde della giornata");
-                } else if($temperatura < 5.00 && date("h") == "12"){
-                    notify("temperatura bassa","la temperatura registrata alle 12:00 è di ".$temperatura." C°, si consiglia di coprirsi adeguatamente quando si esce di casa");
+                //se la temperatura va oltre una certa soglia o al di sotto di un altra manda
+                //una notifica di allerta ai residenti dando consigli per evitare problemi
+                //relativi alla temperatura
+                if($temperatura > 35.00 && date("H") == "12"){
+                    notify("temperatura alta","la temperatura registrata alle 12:00 è di ".$temperatura." C°, si consiglia di rimanere idratati e di non uscire nelle ore più calde della giornata","Reisdente");
+                } else if($temperatura < 5.00 && date("H") == "12"){
+                    notify("temperatura bassa","la temperatura registrata alle 12:00 è di ".$temperatura." C°, si consiglia di coprirsi adeguatamente quando si esce di casa","Residente");
                 }
 
-                if($result){
-                    echo "success";
-                }else{
-                    echo "failure";
-                }
             }else if($_POST['key']=='luci'){
                 if(isset($_POST['idlamp']) && isset($_POST['stato'])){
                     $lampione = $_POST['idlamp'];
                     $status = $_POST['stato'];
                 }
 
-                $query="UPDATE `Luce` SET `status`=$status WHERE `n lampione`=$lampione";
+                //aggiorna lo stato dei lampioni
+                $query="UPDATE `Luce` SET `status`=$status WHERE `ID lamp`=$lampione";
                 $result=mysqli_query($conn,$query);
 
             }else if($_POST['key']=='spazzatura'){
@@ -56,6 +62,7 @@
                     $riempimento=$_POST['fill'];
                 }
 
+                //aggiorna lo stato dei cassonetti (in questo caso solo uno per mancanza di sensori)
                 $query="UPDATE `spazzatura` SET `% riempimento`=$riempimento WHERE `ID`=$identificatore";
                 $result=mysqli_query($conn,$query);
             }

@@ -34,7 +34,7 @@ Servo myservo;
 #define DHTTYPE DHT22
 
 float timeout=MAX_DISTANCE*60; //tempo di timeout per il sensore IR
-int soundspeed=340; //velocità della luce
+int soundspeed=340; //velocità del suono
 
 //soluzione per far funzionare i sensori insieme
 //in pratica usiamo un timer che varia in runtime e lo confrontiamo con il tempo desiderato
@@ -54,16 +54,12 @@ const char* password="62RGOCYWHT";
 const char* apiToken = "aqy6bkr4c7aqucpec1743nsj38g2ce";
 const char* userToken = "uwemowyqrd7ogguo8csr2fg4fo6hxu";
 
-//certificato SSL
-const char *PUSHOVER_ROOT_CA = "";
-
 //setting del web server sulla porta 80
 WiFiServer server(80);
 
 //URL o IP con path (da cambiare ogni volta)
 const char* serverNameSens="http://192.168.1.126/FutureLiving/Sensor.php";
 const char* ApiEndpoint="https://api.pushover.net/1/messages.json";
-const char* serverNoty="http://192.168.1.126/PHP-examples/Noti.php";
 
 //stringa per la richiesta HTTP
 String header;
@@ -159,9 +155,7 @@ void loop() {
     SerialTempTest(t, h);
 
     //invio con HTTP POST i dati ricevuti per essere salvati su DB e per poi essere riutilizzati
-    if(!sendToServer(serverNameSens, "key=temperatura&temp="+String(t)+"&hum="+String(h))){
-      Serial.print("insuccesso temperatura");
-    } 
+    sendToServer(serverNameSens, "key=temperatura&temp="+String(t)+"&hum="+String(h)));
     lastTimeTemp=millis();
   }
 
@@ -248,10 +242,10 @@ bool sendToServer(String serverName, String message){
 
       //chiusura connessione HTTP
       http.end();
-      return true; //POST riuscita
+      return true; //connessione presente
     }
     else{
-      return false;//POST fallita
+      return false;//connessione assente
     }
 }
 
@@ -267,7 +261,7 @@ bool notify(String msg, String title, String device){
     notification["url"] = ""; //optional
     notification["url_title"] = ""; //optional
     notification["html"] = ""; //optional
-    notification["priority"] = ""; //optional
+    notification["priority"] = ""; 
     notification["sound"] = "cosmic"; //optional
     notification["timestamp"] = ""; //optional
 
@@ -278,7 +272,7 @@ bool notify(String msg, String title, String device){
     // creiamo un client http
     HTTPClient http;
 
-    // url dell'endpoint dell'api
+    //inizia sessione http verso url dell'endpoint dell'api
     http.begin(ApiEndpoint);
 
     // Aggiungi header che indica il tipo di http
@@ -297,12 +291,11 @@ bool notify(String msg, String title, String device){
       Serial.printf("HTTP response code: %d\n", httpResponseCode);
     }
     
-    // chiudi la connessione
+    // chiudi la sessione
     http.end();
-    return true;
+    return true; //wifi ok
   }
-  return false;
+  return false; //wifi non ok
 }
 
-
-    // P.F. 25/05/2024 17:27
+    // P.F. 26/05/2024 16:22
