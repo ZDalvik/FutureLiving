@@ -248,7 +248,7 @@
                 echo "<tr><td>".$row['ID lamp']."</td><td>".$stato."</td></tr>";
             }
         } else {
-            echo "err";
+            echo "no data";
         }
     }
 
@@ -269,7 +269,7 @@
                 echo "<tr><td>".$row['ID']."</td><td>".$row['% riempimento']."%</td></tr>";
             }
         } else {
-            echo "err";
+            echo "no data";
         }
     }
 
