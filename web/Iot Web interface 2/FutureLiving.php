@@ -92,15 +92,19 @@
 
                         <img src="rsc/bulbicon.png" class="img-icon">
 
-                    <h2 class="overtext">Illuminazione</h2>
-                    <p class="text">
-                        <table border="1" bgcolor="#FFFFFF" align="center">
-                            <tr><th>Lampione</th><th>Stato</th></tr>
-                            <?php getLights() ?>
-                        </table>
-                        <?php getSunrise() ?>
-                        <?php getSunset() ?>
-                    </p>
+                        <h2 class="overtext">Illuminazione</h2>
+
+                        <div class="table-container">
+                            <table class="tabella">
+                                <tr><th>Lampione</th><th>Stato</th></tr>
+                                <?php getLights() ?>
+                            </table>
+                        </div>
+                        
+                        <p class="text">
+                            <?php getSunrise() ?>
+                            <?php getSunset() ?>
+                        </p>
 
                     </div>
 
@@ -116,13 +120,14 @@
 
                         <img src="rsc/rabbishicon.png" class="img-icon">
 
-                    <h2 class="overtext">Rifiuti</h2>
-                    <p class="text">
-                        <table border="1" bgcolor="#FFFFFF" align="center">
-                            <tr><th>Cassonetto</th><th>Riempimento</th></tr>
-                            <?php getRubbish() ?>
-                        </table>
-                    </p>
+                        <h2 class="overtext">Rifiuti</h2>
+
+                        <div class="table-container">
+                            <table class="tabella">
+                                <tr><th>Cassonetto</th><th>Riempimento</th></tr>
+                                <?php getRubbish() ?>
+                            </table>
+                        </div>
 
                     </div>
 

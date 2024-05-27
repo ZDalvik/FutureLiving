@@ -126,3 +126,37 @@ button:active {
 .tab-content:target {
     display: block;
 }
+
+.table-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+}
+
+.tabella {
+    border-collapse: collapse;
+    margin: 25px 0;
+    font-size: 3ch;
+    min-width: 300px;
+    border-radius: 15px;
+    overflow: hidden;
+    background-color: white;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
+}
+
+.tabella thead tr {
+    color: #ffffff;
+}
+
+.tabella th,
+.tabella td {
+    padding: 12px 15px;
+    border: 1px solid #dddddd;
+}
+
+
+
+
+
