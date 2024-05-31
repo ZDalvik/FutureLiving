@@ -41,7 +41,7 @@
                 //una notifica di allerta ai residenti dando consigli per evitare problemi
                 //relativi alla temperatura
                 if($temperatura > 35.00 && date("H") == "12"){
-                    notify("temperatura alta","la temperatura registrata alle 12:00 è di ".$temperatura." C°, si consiglia di rimanere idratati e di non uscire nelle ore più calde della giornata","Reisdente");
+                    notify("temperatura alta","la temperatura registrata alle 12:00 è di ".$temperatura." C°, si consiglia di rimanere idratati e di non uscire nelle ore più calde della giornata","Residente");
                 } else if($temperatura < 5.00 && date("H") == "12"){
                     notify("temperatura bassa","la temperatura registrata alle 12:00 è di ".$temperatura." C°, si consiglia di coprirsi adeguatamente quando si esce di casa","Residente");
                 }

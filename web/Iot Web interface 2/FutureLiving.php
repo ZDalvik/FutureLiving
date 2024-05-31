@@ -71,9 +71,9 @@
                     <p class="text">
                         La temperatura attuale è di: "<?php getLatestTemp() ?>"
                     <br/><br/>
-                        Temperatura massima negli scorsi 7 giorni è: "<?php getTempMax() ?>"
+                        Temperatura massima di questa settimana è: "<?php getTempMax() ?>"
                     <br/><br/>
-                        Temperatura minima negli ultimi 7 giorni è: "<?php getTempMin() ?>"
+                        Temperatura minima di questa settimana è: "<?php getTempMin() ?>"
                     <br/><br/>
                         L'umidità è al: "<?php GetHumidity() ?>"
                     </p>
@@ -154,14 +154,14 @@
         $oggi = date("Y-m-d");
         //definizione query per selezionare la temperatura massima di oggi dalla tabella Termometro del DB FutureLiving
         //considerando solo le rilevazioni con data del giorno stesso
-        $query = "SELECT MAX(`Temperatura (C°)`) FROM `Termometro` WHERE SUBSTRING(`Data/ora`,1,10)='$oggi'";
+        $query = "SELECT MAX(`Temperatura (C°)`) FROM `Termometro` WHERE WEEK(SUBSTRING(`Data/ora`,1,10),1)=WEEK('$oggi',1)";
         $result = mysqli_query($conn,$query);
         //fetch dei risultati sotto forma di array indicizzato o associativo
         $max = mysqli_fetch_array($result);
 
         //stampo a schermo il risultato
         if($max[0]!=null){
-            echo $max[0]."%";
+            echo $max[0]." °C";
         }else{
             echo "Dati non disponibili";
         }
@@ -177,11 +177,11 @@
         $dbname = "FutureLiving";
         $conn = mysqli_connect($servername, $username, $password,$dbname);
         $oggi = date("Y-m-d");
-        $query = "SELECT MIN(`Temperatura (C°)`) FROM `Termometro` WHERE SUBSTRING(`Data/ora`,1,10)='$oggi'";
+        $query = "SELECT MIN(`Temperatura (C°)`) FROM `Termometro` WHERE WEEK(SUBSTRING(`Data/ora`,1,10),1)=WEEK('$oggi',1)";
         $result=mysqli_query($conn,$query);
         $min = mysqli_fetch_array($result);
         if($min[0]!=null){
-            echo $min[0]." C°";
+            echo $min[0]." °C";
         }else{
             echo "Dati non disponibili";
         }
@@ -203,7 +203,7 @@
         //controllo avvenuta selezione
         if($current!=null){
             //stampo temperatura
-            echo $current[0]." C°";
+            echo $current[0]." °C";
         }else{
             echo "Dati non disponibili";
         }

@@ -1,8 +1,5 @@
 <?php
-/**
- * @author Chris Schalenborgh <chris.s@kryap.com>
- * @version 0.1
- */
+
 
  //libreria che permette un invio di notifiche pushover in modo semplice
 include('Pushover.php');
@@ -14,12 +11,12 @@ function notify($titolo, $messaggio, $dispositivo){
     $push->setToken('aqy6bkr4c7aqucpec1743nsj38g2ce');
     $push->setUser('uwemowyqrd7ogguo8csr2fg4fo6hxu');
 
-    $push->setTitle('$titolo');
-    $push->setMessage('$messaggio' .time());
+    $push->setTitle($titolo);
+    $push->setMessage($messaggio);
     $push->setUrl('');
     $push->setUrlTitle('');
 
-    $push->setDevice('$dispositivo');
+    $push->setDevice($dispositivo);
     $push->setPriority(0);
     $push->setTimestamp(time());
     $push->setDebug(true);
@@ -31,6 +28,7 @@ function notify($titolo, $messaggio, $dispositivo){
 
     echo '<pre>';
     print_r($go);
+    //la receipt serve in caso di notifica di priorità 2 che va accettata dal ricevente
     print "Receipt: $receipt\n";
     echo '</pre>';
 }
