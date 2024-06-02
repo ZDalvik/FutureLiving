@@ -11,29 +11,28 @@
 #include <HTTPClient.h>
 #include <DHT.h>
 #include <ArduinoJson.h>
-#include <WiFiClientSecure.h>
 
 
 //definizione pin GPIO dei sensori
   //temperatura
 #define DHTPIN 4
-  //Sensore IR
+  //Sensore ultrasuoni
 #define EchoPin 12
 #define TriggerPin 14
   //servo
 #define ServoPin 15
   //fotoresistore
-#define AnalogPin 2
+#define AnalogPin 5
 
 //creazione oggetto della classe servo
 Servo myservo;
 
-#define MAX_DISTANCE 7500 //distanza massima del sensore IR
+#define MAX_DISTANCE 7500 //distanza massima del sensore ultrasuoni
 
 //definizione tipi di sensore (non per ogni sensore)
 #define DHTTYPE DHT22
 
-float timeout=MAX_DISTANCE*60; //tempo di timeout per il sensore IR
+float timeout=MAX_DISTANCE*60; //tempo di timeout per il sensore ultrasuoni
 int soundspeed=340; //velocità del suono
 
 //soluzione per far funzionare i sensori insieme
@@ -47,8 +46,8 @@ unsigned long lastTimeLight=0;
 DHT dht(DHTPIN, DHTTYPE);
 
 //ssid e password del wifi (da cambiare ogni volta)
-const char* ssid="FASTWEB-WV1GBU";
-const char* password="62RGOCYWHT";
+const char* ssid="TP-LINK_E7DE5E";
+const char* password="tommaso2003";
 
 //api token e user token per utilizzare il servizio pushover
 const char* apiToken = "aqy6bkr4c7aqucpec1743nsj38g2ce";
@@ -58,7 +57,7 @@ const char* userToken = "uwemowyqrd7ogguo8csr2fg4fo6hxu";
 WiFiServer server(80);
 
 //URL o IP con path (da cambiare ogni volta)
-const char* serverNameSens="http://192.168.1.126/FutureLiving/Sensor.php";
+const char* serverNameSens="http://192.168.0.102/FutureLiving/Sensor.php";
 const char* ApiEndpoint="https://api.pushover.net/1/messages.json";
 
 //stringa per la richiesta HTTP
@@ -75,6 +74,7 @@ void setup() {
   pinMode(LED1, OUTPUT);
   pinMode(LED2, OUTPUT);
   pinMode(LED3, OUTPUT);
+  pinMode(AnalogPin, INPUT);
 
   //setta il baud rate per la connessione seriale
   Serial.begin(115200);
@@ -91,7 +91,7 @@ void setup() {
   Serial.println(WiFi.localIP());
   server.begin(); //faccio partire il server web
 
-  //setting del sensore IR
+  //setting del sensore ultrasuoni
   pinMode(TriggerPin,OUTPUT);
   pinMode(EchoPin,INPUT);
 
@@ -107,7 +107,8 @@ void loop() {
   //accensione e spegnimento lampioni in base alla luce ambientale
   //il controllo avviene ogni minuto 
   if(millis()-lastTimeLight>60000){
-  int luce=analogRead(AnalogPin);
+  long luce=analogRead(AnalogPin);
+  Serial.println(luce);
   if(luce<250){ //se incomincia a far buio
   //accende i lampioni e invia il proprio stato al db
     digitalWrite(LED1, HIGH);
@@ -155,7 +156,7 @@ void loop() {
     SerialTempTest(t, h);
 
     //invio con HTTP POST i dati ricevuti per essere salvati su DB e per poi essere riutilizzati
-    sendToServer(serverNameSens, "key=temperatura&temp="+String(t)+"&hum="+String(h)));
+    sendToServer(serverNameSens, "key=temperatura&temp="+String(t)+"&hum="+String(h));
     lastTimeTemp=millis();
   }
 
