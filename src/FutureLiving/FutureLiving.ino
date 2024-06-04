@@ -46,18 +46,18 @@ unsigned long lastTimeLight=0;
 DHT dht(DHTPIN, DHTTYPE);
 
 //ssid e password del wifi (da cambiare ogni volta)
-const char* ssid="TP-LINK_E7DE5E";
-const char* password="tommaso2003";
+const char* ssid="";
+const char* password="";
 
 //api token e user token per utilizzare il servizio pushover
-const char* apiToken = "aqy6bkr4c7aqucpec1743nsj38g2ce";
-const char* userToken = "uwemowyqrd7ogguo8csr2fg4fo6hxu";
+const char* apiToken = "";
+const char* userToken = "";
 
 //setting del web server sulla porta 80
 WiFiServer server(80);
 
 //URL o IP con path (da cambiare ogni volta)
-const char* serverNameSens="http://192.168.0.102/FutureLiving/Sensor.php";
+const char* serverNameSens="http://[host]/[path]";
 const char* ApiEndpoint="https://api.pushover.net/1/messages.json";
 
 //stringa per la richiesta HTTP
@@ -298,5 +298,3 @@ bool notify(String msg, String title, String device){
   }
   return false; //wifi non ok
 }
-
-    // P.F. 26/05/2024 16:22
