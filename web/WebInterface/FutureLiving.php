@@ -8,7 +8,7 @@
 
             function sendGetRequest(){
     
-                var url = 'http://192.168.0.109:80/15/open'
+                var url = 'http://[host]/15/open'
     
                 var xht = new XMLHttpRequest();
     
